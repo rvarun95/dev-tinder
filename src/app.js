@@ -1,73 +1,39 @@
-const { authorizeAdmin, userAuthorization } = require('./utils/auth.js');
 const express = require('express');
+const connectToDatabase = require('./config/database'); // Import the database connection
+
+// Import User model
+const UserModel = require('./models/user');
 
 const app = express();
 
-app.get("/test", (req, res) => {
-  res.send({ firstName: 'John', lastName: 'Doe' });
+app.post("/signup", async (req, res) => {
+    const userObject = {
+        firstName: "Janani",
+        lastName: "Varunkumar",
+        email: "janani.varunkumar@myemail.com",
+        password: "janani@123",
+        age: 25,
+        gender: "Female"
+    };
+
+    // Create a new user instance using the UserModel
+    const user = new UserModel(userObject);
+    // Save the user to database
+    try {
+        await user.save();
+        res.send("User created successfully");
+    } catch (error) {
+        res.status(500).send("Error creating user: " + error.message);
+    }
 });
 
-app.post("/test", (req, res) => {
-  res.send('Data stored successfully in Database!');
-});
-
-
-/* 
-    Multiple Route Handlers app.use("/route", rH, [rH2, rH3]);
-*/
-// app.get("/user/:id", (req, res, next) => {
-//   const userId = req.params.id;
-//   console.log(req.params);
-// //   res.send(`User ID: ${userId}`);
-//   next();
-// }, (req, res, next) => {
-//   console.log('This is the second callback function for the /user/:id route');
-//   next();
-// }, (req, res, next) => {
-//     console.log('This is the third callback function for the /user/:id route');
-//     next();
-// }, (req, res) => {
-//     res.send('User ID processed successfully!');
-// });
-
-/*
-    Middleware for Authorization
-*/
-app.use("/admin", authorizeAdmin);
-
-app.get("/admin/dashboard", (req, res) => {
-    res.send('Welcome to the Admin Dashboard!');
-});
-
-app.delete("/admin/deleteUser", (req, res) => {
-    res.send('Admin delete operation performed successfully!');
-});
-
-// app.use("/user", userAuthorization, (req, res) => {
-//     res.send('Welcome to the User Dashboard!');
-// });
-
-app.get("/user", (req, res) => {
-    throw new Error('Something went wrong while fetching user profile!');
-});
-
-// app.get("/user/:id/:name", (req, res) => {
-//   const userId = req.params.id;
-//   const userName = req.params.name;
-//   console.log(req.params);
-//   res.send(`User ID: ${userId}, User Name: ${userName}`);
-// });
-
-app.use("/hello", (req, res) => {
-  res.send('Hello World from the server...');
-});
-
-// Global Error Handler
-app.use("/", (err, req, res, next) => {
-    console.error('Error occurred:', err);
-    res.status(500).send('Internal Server Error!');
-});
-
-app.listen(9999, () => {
-  console.log('Server is running on port 9999');
+// Connect to the database
+connectToDatabase().then(() => {
+    console.log('Connected to MongoDB successfully!');
+    // Start the server after successful database connection
+    app.listen(9999, () => {
+        console.log('Server is running on port 9999');
+    });
+}).catch((error) => {
+    console.error('Error connecting to MongoDB:', error);
 });
