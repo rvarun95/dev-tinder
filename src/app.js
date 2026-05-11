@@ -1,3 +1,4 @@
+const { authorizeAdmin, userAuthorization } = require('./utils/auth.js');
 const express = require('express');
 
 const app = express();
@@ -11,20 +12,39 @@ app.post("/test", (req, res) => {
 });
 
 
-// Multiple Route Handlers app.use("/route", rH, [rH2, rH3]);
-app.get("/user/:id", (req, res, next) => {
-  const userId = req.params.id;
-  console.log(req.params);
-//   res.send(`User ID: ${userId}`);
-  next();
-}, (req, res, next) => {
-  console.log('This is the second callback function for the /user/:id route');
-  next();
-}, (req, res, next) => {
-    console.log('This is the third callback function for the /user/:id route');
-    next();
-}, (req, res) => {
-    res.send('User ID processed successfully!');
+/* 
+    Multiple Route Handlers app.use("/route", rH, [rH2, rH3]);
+*/
+// app.get("/user/:id", (req, res, next) => {
+//   const userId = req.params.id;
+//   console.log(req.params);
+// //   res.send(`User ID: ${userId}`);
+//   next();
+// }, (req, res, next) => {
+//   console.log('This is the second callback function for the /user/:id route');
+//   next();
+// }, (req, res, next) => {
+//     console.log('This is the third callback function for the /user/:id route');
+//     next();
+// }, (req, res) => {
+//     res.send('User ID processed successfully!');
+// });
+
+/*
+    Middleware for Authorization
+*/
+app.use("/admin", authorizeAdmin);
+
+app.get("/admin/dashboard", (req, res) => {
+    res.send('Welcome to the Admin Dashboard!');
+});
+
+app.delete("/admin/deleteUser", (req, res) => {
+    res.send('Admin delete operation performed successfully!');
+});
+
+app.use("/user", userAuthorization, (req, res) => {
+    res.send('Welcome to the User Dashboard!');
 });
 
 app.get("/user/:id/:name", (req, res) => {
