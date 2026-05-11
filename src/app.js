@@ -82,9 +82,25 @@ app.delete("/user", async (req, res) => {
 });
 
 // Update a user in the database by ID
+// Dont allow the user to update email through this endpoint
 app.patch("/user", async (req, res) => {
     const userId = req.body.userId;
+    const reqBody = req.body;
+
     try {
+        const ALLOWED_UPDATES = ['userId', 'photoUrl', 'gender', 'password', 'age'];
+
+        const isUpdateAllowed = Object.keys(reqBody).every((keys) => ALLOWED_UPDATES.includes(keys));
+
+        if(!isUpdateAllowed) {
+            // return res.status(400).send("Invalid updates! You can only update the following fields: " + ALLOWED_UPDATES.join(", "));
+            throw new Error("Invalid updates! You can only update the following fields: " + ALLOWED_UPDATES.join(", "));
+        }
+
+        if(reqBody?.skills?.length > 10) {
+            throw new Error("You can only add up to 10 skills");
+        }
+
         const updatedUser = await UserModel.findByIdAndUpdate({ _id: userId }, req.body, { new: true });
         if (!updatedUser) {
             return res.status(404).send("User not found with ID: " + userId);
