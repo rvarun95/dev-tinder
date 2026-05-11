@@ -1,5 +1,7 @@
 const express = require('express');
 const connectToDatabase = require('./config/database'); // Import the database connection
+const { validateSignupData } = require('./utils/validations'); // Import validation function
+const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
 
 // Import User model
 const UserModel = require('./models/user');
@@ -8,36 +10,70 @@ const app = express();
 
 app.use(express.json()); // Middleware to parse JSON request bodies
 
+// app.post("/signup", async (req, res) => {
+//     // const userObject = {
+//     //     firstName: "Janani",
+//     //     lastName: "Varunkumar",
+//     //     email: "janani.varunkumar@myemail.com",
+//     //     password: "janani@123",
+//     //     age: 25,
+//     //     gender: "Female"
+//     // };
+
+//     // // Create a new user instance using the UserModel
+//     // const user = new UserModel(userObject);
+//     // // Save the user to database
+//     // try {
+//     //     await user.save();
+//     //     res.send("User created successfully");
+//     // } catch (error) {
+//     //     res.status(500).send("Error creating user: " + error.message);
+//     // }
+
+//     console.log(req.body);
+//     // const { firstName, lastName, email, password, age, gender } = req.body;
+
+//     try {
+//         // const user = new UserModel({ firstName, lastName, email, password, age, gender });
+//         const user = new UserModel(req.body);
+//         await user.save();
+//         res.send("User created successfully");
+//     } catch (error) {
+//         res.status(500).send("Error creating user: " + error.message);
+//     }
+// });
+
 app.post("/signup", async (req, res) => {
-    // const userObject = {
-    //     firstName: "Janani",
-    //     lastName: "Varunkumar",
-    //     email: "janani.varunkumar@myemail.com",
-    //     password: "janani@123",
-    //     age: 25,
-    //     gender: "Female"
-    // };
+    // Validate the request body to ensure all required fields are present
 
-    // // Create a new user instance using the UserModel
-    // const user = new UserModel(userObject);
-    // // Save the user to database
-    // try {
-    //     await user.save();
-    //     res.send("User created successfully");
-    // } catch (error) {
-    //     res.status(500).send("Error creating user: " + error.message);
-    // }
-
-    console.log(req.body);
-    // const { firstName, lastName, email, password, age, gender } = req.body;
+    // Encrypt the password before saving to the database (you can use bcrypt library for this)
 
     try {
-        // const user = new UserModel({ firstName, lastName, email, password, age, gender });
-        const user = new UserModel(req.body);
+        validateSignupData(req);
+
+        const { firstName, lastName, email, password, age, gender, photoUrl, skills } = req.body;
+
+        // Hash the password using bcrypt before saving to the database
+        const saltRounds = 10;
+        const passwordHash = await bcrypt.hash(req.body.password, saltRounds);
+        console.log("Hashed password:", passwordHash);
+        
+        // Create a new user instance using the UserModel with the hashed password
+        const user = new UserModel({
+            firstName,
+            lastName,
+            email,
+            password: passwordHash, // Save the hashed password to the database
+            age,
+            gender,
+            photoUrl,
+            skills
+        });
+
         await user.save();
         res.send("User created successfully");
     } catch (error) {
-        res.status(500).send("Error creating user: " + error.message);
+        res.status(500).send("ERR: Error creating user: " + error.message);
     }
 });
 

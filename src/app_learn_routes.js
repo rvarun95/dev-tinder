@@ -1,4 +1,4 @@
-const { authorizeAdmin, userAuthorization } = require('./utils/auth.js');
+const { authorizeAdmin, userAuthorization } = require('./middlewares/auth.js');
 const express = require('express');
 
 const app = express();
