@@ -43,23 +43,29 @@ app.delete("/admin/deleteUser", (req, res) => {
     res.send('Admin delete operation performed successfully!');
 });
 
-app.use("/user", userAuthorization, (req, res) => {
-    res.send('Welcome to the User Dashboard!');
+// app.use("/user", userAuthorization, (req, res) => {
+//     res.send('Welcome to the User Dashboard!');
+// });
+
+app.get("/user", (req, res) => {
+    throw new Error('Something went wrong while fetching user profile!');
 });
 
-app.get("/user/:id/:name", (req, res) => {
-  const userId = req.params.id;
-  const userName = req.params.name;
-  console.log(req.params);
-  res.send(`User ID: ${userId}, User Name: ${userName}`);
-});
+// app.get("/user/:id/:name", (req, res) => {
+//   const userId = req.params.id;
+//   const userName = req.params.name;
+//   console.log(req.params);
+//   res.send(`User ID: ${userId}, User Name: ${userName}`);
+// });
 
 app.use("/hello", (req, res) => {
   res.send('Hello World from the server...');
 });
 
-app.get('/', (req, res) => {
-  res.send('Hello from the server!');
+// Global Error Handler
+app.use("/", (err, req, res, next) => {
+    console.error('Error occurred:', err);
+    res.status(500).send('Internal Server Error!');
 });
 
 app.listen(9999, () => {
