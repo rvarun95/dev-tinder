@@ -6,7 +6,9 @@ const userSchema = new Schema({
     firstName: {
         type: String,
         required: true,
-        trim: true
+        trim: true,
+        minLength: 3,
+        maxLength: 50
     },
     lastName: {
         type: String,
@@ -15,6 +17,7 @@ const userSchema = new Schema({
     },
     email: {
         type: String,
+        lowercase: true,
         required: true,
         unique: true,
         trim: true,
@@ -25,11 +28,30 @@ const userSchema = new Schema({
     },
     age: {
         type: Number,
+        min: 18
     },
     gender: {
+        type: String,
+        validate(value) {
+            if(!['Male', 'Female', 'Other'].includes(value)) {
+                throw new Error('Invalid gender');
+            }
+        },
+        enum: ['Male', 'Female', 'Other']
+    },
+    photoUrl: {
         type: String
+    },
+    about: {
+        type: String,
+        default: "This is the default about section. Please update it to tell us more about yourself!"
+    },
+    skills: {
+        type: [String]
     }
         
+}, {
+    timestamps: true
 });
 
 const UserModel = mongoose.model('User', userSchema);
