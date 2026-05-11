@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const validator = require('validator'); // Import validator library for email validation
 
 const { Schema } = mongoose;
 
@@ -21,10 +22,26 @@ const userSchema = new Schema({
         required: true,
         unique: true,
         trim: true,
+        validate(value) {
+            if(!validator.isEmail(value)) {
+                throw new Error('Invalid email address');
+            }
+        }        
     },
     password: {
         type: String,
         required: true,
+        validate(value) {
+            if(!validator.isStrongPassword(value, { 
+                minLength: 8, 
+                minLowercase: 1, 
+                minUppercase: 1, 
+                minNumbers: 1, 
+                minSymbols: 1 
+            })) {
+                throw new Error('Password must be at least 8 characters long and include uppercase letters, lowercase letters, numbers, and symbols');
+            }
+        }
     },
     age: {
         type: Number,
@@ -40,7 +57,12 @@ const userSchema = new Schema({
         enum: ['Male', 'Female', 'Other']
     },
     photoUrl: {
-        type: String
+        type: String,
+        validate(value) {
+            if(value && !validator.isURL(value)) {
+                throw new Error('Invalid URL for photo');
+            }
+        }
     },
     about: {
         type: String,
