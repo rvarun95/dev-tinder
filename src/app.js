@@ -77,6 +77,26 @@ app.post("/signup", async (req, res) => {
     }
 });
 
+// Login endpoint to authenticate user and return a token (for simplicity, we are not implementing JWT here)
+app.post("/login", async (req, res) => {
+    try {
+        const { email, password } = req.body;
+
+        const user = await UserModel.findOne({ email: email });
+        if (!user) {
+            return res.status(404).send("Invalid email address");
+        }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).send("Invalid password");
+        }
+        res.send("Login successful");
+
+    } catch (error) {
+        res.status(500).send("Error logging in: " + error.message);
+    }
+});
+
 // Read Data from Database - GET Request
 app.get("/user", async (req, res) => {
     const email = req.body.email;
