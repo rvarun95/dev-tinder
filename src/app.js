@@ -90,10 +90,10 @@ app.post("/login", async (req, res) => {
         if (!user) {
             return res.status(404).send("Invalid email address");
         }
-        const isPasswordValid = await bcrypt.compare(password, user.password);
+        const isPasswordValid = await user.validatePassword(password);
         if (isPasswordValid) {
-            // Create JWT token
-            const token = await jwt.sign({ _id: user._id}, "your_jwt_secret_key", { expiresIn: "1h" }); // Generate a JWT token with user ID as payload and set an expiration time
+            // Create JWT token from user schema method and send it in the response
+            const token = await user.getJWT();
             
             res.cookie("token", token, { httpOnly: true }); // Set the JWT token in the cookie for authentication
             res.send("Login successful");

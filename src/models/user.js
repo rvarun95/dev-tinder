@@ -76,5 +76,22 @@ const userSchema = new Schema({
     timestamps: true
 });
 
+// Instance method to generate JWT token for the user
+userSchema.methods.getJWT = async function() {
+    const user = this;
+
+    const token = await jwt.sign({ _id: this._id }, "your_jwt_secret_key", { expiresIn: "1h" });
+    return token;
+};
+
+// Validate the password
+userSchema.methods.validatePassword = async function(inputPassword) {
+    const user = this;
+
+    const passwordHash = this.password;
+    const isPasswordValid = await bcrypt.compare(inputPassword, passwordHash);
+    return isPasswordValid;
+};
+
 const UserModel = mongoose.model('User', userSchema);
 module.exports = UserModel;
