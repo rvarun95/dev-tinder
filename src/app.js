@@ -2,6 +2,8 @@ const express = require('express');
 const connectToDatabase = require('./config/database'); // Import the database connection
 const { validateSignupData } = require('./utils/validations'); // Import validation function
 const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
+const cookieParser = require('cookie-parser'); // Import cookie-parser to handle cookies
+const jwt = require('jsonwebtoken'); // Import jsonwebtoken for token generation and verification
 
 // Import User model
 const UserModel = require('./models/user');
@@ -9,6 +11,7 @@ const UserModel = require('./models/user');
 const app = express();
 
 app.use(express.json()); // Middleware to parse JSON request bodies
+app.use(cookieParser()); // Middleware to parse cookies
 
 // app.post("/signup", async (req, res) => {
 //     // const userObject = {
@@ -87,19 +90,51 @@ app.post("/login", async (req, res) => {
             return res.status(404).send("Invalid email address");
         }
         const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
+        if (isPasswordValid) {
+            // Create JWT token
+            const token = await jwt.sign({ _id: user._id}, "your_jwt_secret_key", { expiresIn: "1h" }); // Generate a JWT token with user ID as payload and set an expiration time
+            
+            res.cookie("token", token, { httpOnly: true }); // Set the JWT token in the cookie for authentication
+            res.send("Login successful");
+        } else {
             return res.status(401).send("Invalid password");
         }
-        res.send("Login successful");
-
     } catch (error) {
         res.status(500).send("Error logging in: " + error.message);
     }
 });
 
+app.get("/profile", async (req, res) => {
+    try {
+        const {token} = req.cookies; // Get the token from the cookie
+
+        if (!token) {
+            return res.status(401).send("Unauthorized: No token provided");
+        }
+        // Validate the token and extract user information (e.g., user ID) from the token payload
+        const decodedToken = await jwt.verify(token, "your_jwt_secret_key");
+
+        if (!decodedToken || !decodedToken._id) {
+            return res.status(401).send("Unauthorized: Invalid token");
+        }
+
+        const userId = decodedToken._id;
+
+        const loggedInUser = await UserModel.findById(userId);
+        if (!loggedInUser) {
+            return res.status(404).send("User not found");
+        }
+
+        // For simplicity, we are not verifying the token here. In a real application, you would verify the token and extract user information from it.
+        res.send(loggedInUser);
+    } catch (error) {
+        res.status(500).send("Error fetching profile: " + error.message);
+    }
+});
+
 // Read Data from Database - GET Request
 app.get("/user", async (req, res) => {
-    const email = req.body.email;
+    const email = req.query.email;
     console.log("Email received in query params:", email);
     try {
         const users = await UserModel.find({ email: email });
