@@ -4,6 +4,7 @@ const { validateSignupData } = require('./utils/validations'); // Import validat
 const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
 const cookieParser = require('cookie-parser'); // Import cookie-parser to handle cookies
 const jwt = require('jsonwebtoken'); // Import jsonwebtoken for token generation and verification
+const { userAuthorization } = require('./middlewares/auth'); // Import authorization middlewares
 
 // Import User model
 const UserModel = require('./models/user');
@@ -104,32 +105,21 @@ app.post("/login", async (req, res) => {
     }
 });
 
-app.get("/profile", async (req, res) => {
+app.get("/profile", userAuthorization, async (req, res) => {
     try {
-        const {token} = req.cookies; // Get the token from the cookie
-
-        if (!token) {
-            return res.status(401).send("Unauthorized: No token provided");
-        }
-        // Validate the token and extract user information (e.g., user ID) from the token payload
-        const decodedToken = await jwt.verify(token, "your_jwt_secret_key");
-
-        if (!decodedToken || !decodedToken._id) {
-            return res.status(401).send("Unauthorized: Invalid token");
-        }
-
-        const userId = decodedToken._id;
-
-        const loggedInUser = await UserModel.findById(userId);
-        if (!loggedInUser) {
-            return res.status(404).send("User not found");
-        }
+        let loggedInUser = req.user; // Access the user information attached to the request object by the userAuthorization middleware
 
         // For simplicity, we are not verifying the token here. In a real application, you would verify the token and extract user information from it.
         res.send(loggedInUser);
     } catch (error) {
         res.status(500).send("Error fetching profile: " + error.message);
     }
+});
+
+app.post("/sendConnectionRequest", userAuthorization, (req, res) => {
+    const user = req.user; // Access the user information attached to the request object by the userAuthorization middleware
+    console.log("Connection request sent successfully!", user);
+    res.send(user);
 });
 
 // Read Data from Database - GET Request
