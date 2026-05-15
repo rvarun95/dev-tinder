@@ -20,6 +20,31 @@ const validateSignupData = (req) => {
     }
 }
 
+const validateUpdateProfileData = (req) => {
+    const reqBody = req.body;
+
+    const ALLOWED_UPDATE_FIELDS  = ['firstName', 'lastName', 'photoUrl', 'gender', 'age', 'skills', 'about'];
+
+    const isUpdateAllowed = Object.keys(reqBody).every((field) => 
+        ALLOWED_UPDATE_FIELDS.includes(field)
+    );
+
+    // if (!isUpdateAllowed) {
+    //     throw new Error("Invalid updates!");
+    // }
+
+    // Object.keys(reqBody).forEach((key) => {
+    //     loggedInUser[key] = reqBody[key];
+    // });
+
+    // if(reqBody?.skills?.length > 10) {
+    //     throw new Error("You can only add up to 10 skills!");
+    // }
+
+    return isUpdateAllowed;
+}
+
 module.exports = {
-    validateSignupData
+    validateSignupData,
+    validateUpdateProfileData
 }
