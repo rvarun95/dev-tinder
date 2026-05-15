@@ -1,5 +1,7 @@
 const mongoose = require('mongoose');
 const validator = require('validator'); // Import validator library for email validation
+const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
+const jwt = require('jsonwebtoken'); // Import jsonwebtoken for token generation and verification
 
 const { Schema } = mongoose;
 

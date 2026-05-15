@@ -1,10 +1,6 @@
 const express = require('express');
 const connectToDatabase = require('./config/database'); // Import the database connection
-const { validateSignupData } = require('./utils/validations'); // Import validation function
-const bcrypt = require('bcrypt'); // Import bcrypt for password hashing
 const cookieParser = require('cookie-parser'); // Import cookie-parser to handle cookies
-const jwt = require('jsonwebtoken'); // Import jsonwebtoken for token generation and verification
-const { userAuthorization } = require('./middlewares/auth'); // Import authorization middlewares
 
 // Import User model
 const UserModel = require('./models/user');
@@ -14,183 +10,15 @@ const app = express();
 app.use(express.json()); // Middleware to parse JSON request bodies
 app.use(cookieParser()); // Middleware to parse cookies
 
-// app.post("/signup", async (req, res) => {
-//     // const userObject = {
-//     //     firstName: "Janani",
-//     //     lastName: "Varunkumar",
-//     //     email: "janani.varunkumar@myemail.com",
-//     //     password: "janani@123",
-//     //     age: 25,
-//     //     gender: "Female"
-//     // };
 
-//     // // Create a new user instance using the UserModel
-//     // const user = new UserModel(userObject);
-//     // // Save the user to database
-//     // try {
-//     //     await user.save();
-//     //     res.send("User created successfully");
-//     // } catch (error) {
-//     //     res.status(500).send("Error creating user: " + error.message);
-//     // }
+// Import and use route handlers
+const authRouter = require('./routes/auth');
+const profileRouter = require('./routes/profile');
+const requestRouter = require('./routes/request');
 
-//     console.log(req.body);
-//     // const { firstName, lastName, email, password, age, gender } = req.body;
-
-//     try {
-//         // const user = new UserModel({ firstName, lastName, email, password, age, gender });
-//         const user = new UserModel(req.body);
-//         await user.save();
-//         res.send("User created successfully");
-//     } catch (error) {
-//         res.status(500).send("Error creating user: " + error.message);
-//     }
-// });
-
-app.post("/signup", async (req, res) => {
-    // Validate the request body to ensure all required fields are present
-
-    // Encrypt the password before saving to the database (you can use bcrypt library for this)
-
-    try {
-        validateSignupData(req);
-
-        const { firstName, lastName, email, password, age, gender, photoUrl, skills } = req.body;
-
-        // Hash the password using bcrypt before saving to the database
-        const saltRounds = 10;
-        const passwordHash = await bcrypt.hash(req.body.password, saltRounds);
-        console.log("Hashed password:", passwordHash);
-        
-        // Create a new user instance using the UserModel with the hashed password
-        const user = new UserModel({
-            firstName,
-            lastName,
-            email,
-            password: passwordHash, // Save the hashed password to the database
-            age,
-            gender,
-            photoUrl,
-            skills
-        });
-
-        await user.save();
-        res.send("User created successfully");
-    } catch (error) {
-        res.status(500).send("ERR: Error creating user: " + error.message);
-    }
-});
-
-// Login endpoint to authenticate user and return a token (for simplicity, we are not implementing JWT here)
-app.post("/login", async (req, res) => {
-    try {
-        const { email, password } = req.body;
-
-        const user = await UserModel.findOne({ email: email });
-        if (!user) {
-            return res.status(404).send("Invalid email address");
-        }
-        const isPasswordValid = await user.validatePassword(password);
-        if (isPasswordValid) {
-            // Create JWT token from user schema method and send it in the response
-            const token = await user.getJWT();
-            
-            res.cookie("token", token, { httpOnly: true }); // Set the JWT token in the cookie for authentication
-            res.send("Login successful");
-        } else {
-            return res.status(401).send("Invalid password");
-        }
-    } catch (error) {
-        res.status(500).send("Error logging in: " + error.message);
-    }
-});
-
-app.get("/profile", userAuthorization, async (req, res) => {
-    try {
-        let loggedInUser = req.user; // Access the user information attached to the request object by the userAuthorization middleware
-
-        // For simplicity, we are not verifying the token here. In a real application, you would verify the token and extract user information from it.
-        res.send(loggedInUser);
-    } catch (error) {
-        res.status(500).send("Error fetching profile: " + error.message);
-    }
-});
-
-app.post("/sendConnectionRequest", userAuthorization, (req, res) => {
-    const user = req.user; // Access the user information attached to the request object by the userAuthorization middleware
-    console.log("Connection request sent successfully!", user);
-    res.send(user);
-});
-
-// Read Data from Database - GET Request
-app.get("/user", async (req, res) => {
-    const email = req.query.email;
-    console.log("Email received in query params:", email);
-    try {
-        const users = await UserModel.find({ email: email });
-        if(users.length === 0) {
-            return res.status(404).send("User not found with email: " + email);
-        }
-        res.send(users);
-    } catch (error) {
-        res.status(500).send("Error fetching user: " + error.message);
-    }
-});
-
-// Get all users from the database
-app.get("/feed", async (req, res) => {
-    try {
-        const users = await UserModel.find({});
-        res.send(users);
-    } catch (error) {
-        res.status(500).send("Error fetching users: " + error.message);
-    }
-});
-
-// Delete a user from the database by ID
-app.delete("/user", async (req, res) => {
-    const userId = req.body.userId;
-    console.log("User ID received in request body:", userId);
-    try {
-        const deletedUser = await UserModel.findByIdAndDelete({ _id: userId });
-        if (!deletedUser) {
-            return res.status(404).send("User not found with ID: " + userId);
-        }
-        res.send("User deleted successfully");
-    } catch (error) {
-        res.status(500).send("Error deleting user: " + error.message);
-    }
-});
-
-// Update a user in the database by ID
-// Dont allow the user to update email through this endpoint
-app.patch("/user", async (req, res) => {
-    const userId = req.body.userId;
-    const reqBody = req.body;
-
-    try {
-        const ALLOWED_UPDATES = ['userId', 'photoUrl', 'gender', 'password', 'age'];
-
-        const isUpdateAllowed = Object.keys(reqBody).every((keys) => ALLOWED_UPDATES.includes(keys));
-
-        if(!isUpdateAllowed) {
-            // return res.status(400).send("Invalid updates! You can only update the following fields: " + ALLOWED_UPDATES.join(", "));
-            throw new Error("Invalid updates! You can only update the following fields: " + ALLOWED_UPDATES.join(", "));
-        }
-
-        if(reqBody?.skills?.length > 10) {
-            throw new Error("You can only add up to 10 skills");
-        }
-
-        const updatedUser = await UserModel.findByIdAndUpdate({ _id: userId }, req.body, { new: true });
-        if (!updatedUser) {
-            return res.status(404).send("User not found with ID: " + userId);
-        }
-        res.send(updatedUser);
-    } catch (error) {
-        res.status(500).send("Error updating user: " + error.message);
-    }
-});
+app.use("/", authRouter);
+app.use("/", profileRouter);
+app.use("/", requestRouter);
 
 // Connect to the database
 connectToDatabase().then(() => {
