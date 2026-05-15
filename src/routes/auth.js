@@ -87,7 +87,10 @@ authRouter.post("/login", async (req, res) => {
             // Create JWT token from user schema method and send it in the response
             const token = await user.getJWT();
             
-            res.cookie("token", token, { httpOnly: true }); // Set the JWT token in the cookie for authentication
+            res.cookie("token", token, {
+                expires: new Date(Date.now() + 1 * 60 * 60 * 1000), // Set the cookie to expire in 1 hour
+                httpOnly: true
+            }); // Set the JWT token in the cookie for authentication
             res.send("Login successful");
         } else {
             return res.status(401).send("Invalid password");
@@ -95,6 +98,15 @@ authRouter.post("/login", async (req, res) => {
     } catch (error) {
         res.status(500).send("Error logging in: " + error.message);
     }
+});
+
+authRouter.post("/logout", (req, res) => {
+    // res.clearCookie("token"); // Clear the token cookie to log out the user
+    res.cookie("token", null, {
+        expires: new Date(Date.now()), // Set the cookie to expire immediately
+        httpOnly: true
+    });
+    res.send("Logout successful");
 });
 
 module.exports = authRouter;
