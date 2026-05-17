@@ -70,13 +70,19 @@ userRouter.get("/user/connections", userAuthorization, async (req, res) => {
  * User should see all the user cards except
  * 0. his own card
  * 1. his connections
- * 2. gnored and rejected connection requests
+ * 2. ignored and rejected connection requests
  * 3. pending connection requests sent by the user
 */
 
 userRouter.get("/feed", userAuthorization, async (req, res) => {
     try {
         const loggedInUser = req.user;
+
+        const page = parseInt(req.query.page) || 1;
+        let limit = parseInt(req.query.limit) || 10;
+        limit = Math.min(limit, 50); // Set a maximum limit of 50 to prevent abuse
+
+        const skip = (page - 1) * limit;
 
         const connections = await ConnectionRequestModel.find({
             $or: [
@@ -102,7 +108,7 @@ userRouter.get("/feed", userAuthorization, async (req, res) => {
                 }},
                 { _id: { $ne: loggedInUser._id } }
             ]
-         }).select('firstName lastName photoUrl about skills age');
+         }).select('firstName lastName photoUrl about skills age').skip(skip).limit(limit);
          console.log('feedUsers', feedUsers);
 
         res.status(200).json({
