@@ -1,76 +1,68 @@
 const express = require('express');
-
+const { userAuthorization } = require('../middlewares/auth');
 const UserModel = require('../models/user');
+const ConnectionRequestModel = require('../models/connectionRequest');
 
 const userRouter = express.Router();
 
-// Read Data from Database - GET Request
-userRouter.get("/user", async (req, res) => {
-    const email = req.query.email;
-    console.log("Email received in query params:", email);
+/* 
+    Get all the PENDING connection requests for the authenticated user. 
+    This route should return a list of all the users who have sent a 
+    connection request to the authenticated user with the status "pending". 
+    The response should include the details of the users who have sent the connection requests, 
+    such as their first name, last name, and email address. 
+    You can implement this by querying the ConnectionRequestModel to 
+    find all connection requests where the toUserId matches the authenticated user's ID and the status is "pending". 
+    Then, you can populate the fromUserId field to get the details of the users who sent the requests and return this information in the response.
+*/
+userRouter.get("/user/requests/received", userAuthorization, async (req, res) => {
     try {
-        const users = await UserModel.find({ email: email });
-        if(users.length === 0) {
-            return res.status(404).send("User not found with email: " + email);
-        }
-        res.send(users);
-    } catch (error) {
-        res.status(500).send("Error fetching user: " + error.message);
+        const loggedInUser = req.user;
+
+        const connectionRequests = await ConnectionRequestModel.find({
+            toUserId: loggedInUser._id,
+            status: 'interested'
+        }).populate('fromUserId', ['firstName', 'lastName', 'photoUrl', 'about', 'skills', 'age']);
+
+        res.json({
+            message: 'Pending Interested connection requests fetched successfully',
+            data: connectionRequests
+        })
+    
+    } catch (err) {
+        console.error('Error fetching pending connection requests:', err);
+        res.status(500).json({
+            message: 'Internal server error'
+        })
     }
 });
 
-// Get all users from the database
-userRouter.get("/feed", async (req, res) => {
+userRouter.get("/user/connections", userAuthorization, async (req, res) => {
     try {
-        const users = await UserModel.find({});
-        res.send(users);
-    } catch (error) {
-        res.status(500).send("Error fetching users: " + error.message);
-    }
-});
+        const loggedInUser = req.user;
 
-// Delete a user from the database by ID
-userRouter.delete("/user", async (req, res) => {
-    const userId = req.body.userId;
-    console.log("User ID received in request body:", userId);
-    try {
-        const deletedUser = await UserModel.findByIdAndDelete({ _id: userId });
-        if (!deletedUser) {
-            return res.status(404).send("User not found with ID: " + userId);
-        }
-        res.send("User deleted successfully");
-    } catch (error) {
-        res.status(500).send("Error deleting user: " + error.message);
-    }
-});
+        const connections = await ConnectionRequestModel.find({
+            $or: [
+                { fromUserId: loggedInUser._id, status: 'accepted' },
+                { toUserId: loggedInUser._id, status: 'accepted' }
+            ]
+        }).populate('fromUserId toUserId', ['firstName', 'lastName', 'photoUrl', 'about', 'skills', 'age']);
 
-// Update a user in the database by ID
-// Dont allow the user to update email through this endpoint
-userRouter.patch("/user", async (req, res) => {
-    const userId = req.body.userId;
-    const reqBody = req.body;
-
-    try {
-        const ALLOWED_UPDATES = ['userId', 'photoUrl', 'gender', 'password', 'age'];
-
-        const isUpdateAllowed = Object.keys(reqBody).every((keys) => ALLOWED_UPDATES.includes(keys));
-
-        if(!isUpdateAllowed) {
-            // return res.status(400).send("Invalid updates! You can only update the following fields: " + ALLOWED_UPDATES.join(", "));
-            throw new Error("Invalid updates! You can only update the following fields: " + ALLOWED_UPDATES.join(", "));
-        }
-
-        if(reqBody?.skills?.length > 10) {
-            throw new Error("You can only add up to 10 skills");
-        }
-
-        const updatedUser = await UserModel.findByIdAndUpdate({ _id: userId }, req.body, { new: true });
-        if (!updatedUser) {
-            return res.status(404).send("User not found with ID: " + userId);
-        }
-        res.send(updatedUser);
-    } catch (error) {
-        res.status(500).send("Error updating user: " + error.message);
+        const data = connections.map(connection => {
+            if (connection.fromUserId._id.toString() === loggedInUser._id.toString()) {
+                return connection.toUserId;
+            }
+            return connection.fromUserId;
+        });
+        res.json({
+            message: 'Connections fetched successfully',
+            data
+        });
+    } catch (err) {
+        console.error('Error fetching connections:', err);
+        res.status(500).json({
+            message: 'Internal server error'
+        })
     }
 });
 
