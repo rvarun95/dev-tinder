@@ -66,4 +66,55 @@ userRouter.get("/user/connections", userAuthorization, async (req, res) => {
     }
 });
 
+/** 
+ * User should see all the user cards except
+ * 0. his own card
+ * 1. his connections
+ * 2. gnored and rejected connection requests
+ * 3. pending connection requests sent by the user
+*/
+
+userRouter.get("/feed", userAuthorization, async (req, res) => {
+    try {
+        const loggedInUser = req.user;
+
+        const connections = await ConnectionRequestModel.find({
+            $or: [
+                { fromUserId: loggedInUser._id },
+                { toUserId: loggedInUser._id }
+            ]
+        }).select('fromUserId toUserId status');
+        // .populate('fromUserId', 'firstName lastName')
+        // .populate('toUserId', 'firstName lastName');
+
+        const hideUsersFromFeed = new Set();
+        connections.forEach(connection => {
+            hideUsersFromFeed.add(connection.fromUserId.toString());
+            hideUsersFromFeed.add(connection.toUserId.toString());
+        });
+
+        console.log('hideUsersFromFeed', hideUsersFromFeed);
+
+        const feedUsers = await UserModel.find({
+            $and: [
+                {_id: {
+                    $nin: Array.from(hideUsersFromFeed).concat([loggedInUser._id.toString()])
+                }},
+                { _id: { $ne: loggedInUser._id } }
+            ]
+         }).select('firstName lastName photoUrl about skills age');
+         console.log('feedUsers', feedUsers);
+
+        res.status(200).json({
+            message: 'Feed fetched successfully',
+            data: feedUsers
+        });
+    } catch (err) {
+        console.error('Error fetching feed:', err);
+        res.status(400).json({
+            message: err.message
+        });
+    }
+});
+
 module.exports = userRouter;
