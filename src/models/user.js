@@ -10,6 +10,7 @@ const userSchema = new Schema({
         type: String,
         required: true,
         trim: true,
+        index: true,
         minLength: 3,
         maxLength: 50
     },
@@ -78,6 +79,11 @@ const userSchema = new Schema({
     timestamps: true
 });
 
+// Create an index on firstName, lastName, and email for faster search
+// userSchema.find({ firstName: 1, lastName: 1, email: 1 });
+
+userSchema.index({ firstName: 1, lastName: 1 });
+
 // Instance method to generate JWT token for the user
 userSchema.methods.getJWT = async function() {
     const user = this;
@@ -95,5 +101,5 @@ userSchema.methods.validatePassword = async function(inputPassword) {
     return isPasswordValid;
 };
 
-const UserModel = mongoose.model('User', userSchema);
+const UserModel = new mongoose.model('User', userSchema);
 module.exports = UserModel;
