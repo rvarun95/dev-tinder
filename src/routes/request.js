@@ -62,4 +62,48 @@ requestRouter.post("/request/send/:status/:toUserId", userAuthorization, async (
     }
 });
 
+ /*
+    * validate the status
+    * validate the requestId
+    * loggedInuser should be the toUserId in the connection request
+    * status should be interested
+    * update the connection request status to accepted and save the connection in the database
+*/
+requestRouter.post("/request/review/:status/:requestId", userAuthorization, async (req, res) => {
+    try {
+        const loggedInUser = req.user; // Get the authenticated user's ID from the request
+        const {requestId, status} = req.params;
+
+        const ALLOWED_STATUSES = ['accepted', 'rejected'];
+        if (!ALLOWED_STATUSES.includes(status)) {
+            return res.status(400).json({ 
+                message: `Invalid status. Allowed values are: ${ALLOWED_STATUSES.join(', ')}` 
+            });
+        }
+
+        const connectionRequest = await ConnectionRequestModel.findOne({
+            _id: requestId,
+            toUserId: loggedInUser._id,
+            status: 'interested',
+        });
+
+        if( !connectionRequest ) {
+            return res.status(404).json({
+                message: 'Connection request not found or you are not authorized to review this request.'
+            });
+        }
+
+        connectionRequest.status = status;
+        const data = await connectionRequest.save();
+
+        res.json({
+            message: `Connection request has been ${status} successfully.`,
+            data
+        });
+    } catch (error) {
+        console.error('Error reviewing connection request:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+});
+
 module.exports = requestRouter;
