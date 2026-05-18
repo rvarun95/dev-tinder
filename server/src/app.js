@@ -1,12 +1,17 @@
 const express = require('express');
 const connectToDatabase = require('./config/database'); // Import the database connection
 const cookieParser = require('cookie-parser'); // Import cookie-parser to handle cookies
+const cors = require('cors'); // Import cors to handle Cross-Origin Resource Sharing
 
 // Import User model
 const UserModel = require('./models/user');
 
 const app = express();
 
+app.use(cors({
+    origin: 'http://localhost:5173', // Replace with your frontend URL
+    credentials: true // Allow cookies to be sent in cross-origin requests
+}));
 app.use(express.json()); // Middleware to parse JSON request bodies
 app.use(cookieParser()); // Middleware to parse cookies
 
