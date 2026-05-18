@@ -29,7 +29,8 @@ const userAuthorization = async (req, res, next) => {
         // Read the token from the request header or cookie
         const { token } = req.cookies;
         if (!token) {
-            throw new Error("No token provided");
+            // throw new Error("No token provided");
+            res.status(401).send("Unauthorized: No token provided");
         }
         const decodedObject = await jwt.verify(token, "your_jwt_secret_key");
                     
