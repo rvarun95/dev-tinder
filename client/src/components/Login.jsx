@@ -2,9 +2,9 @@ import axios from 'axios'
 import React from 'react'
 import { useState } from 'react'
 import { useDispatch } from 'react-redux'
-import { addUser } from './utils/userSlice'
+import { addUser } from '../utils/userSlice'
 import { useNavigate } from 'react-router-dom'
-import { API_BASE_URL } from './utils/constants'
+import { API_BASE_URL } from '../utils/constants'
 
 const Login = () => {
 
@@ -22,6 +22,7 @@ const Login = () => {
             withCredentials: true // Include cookies in the request
         }).then((response) => {
             console.log('Login successful', response.data);
+            localStorage.setItem('token', response.data.token);
             dispatch(addUser(response.data));
             return navigate('/feed');
         }).catch((error) => {
